@@ -39,7 +39,8 @@ class LogInActivity : AppCompatActivity() {
         // ボタンが押された時の処理
         signUpButton.setOnClickListener {
             //バックエンドとのやりとり
-            val url = "http://192.168.179.234:8080/login"
+            val url = "ここにローカルネットワークIP"
+
             val header = hashMapOf("token" to "")
             val username = usernameEditText.text.toString()
             val password = passwordEditText.text.toString()

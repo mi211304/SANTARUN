@@ -158,7 +158,7 @@ class SignUpActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val url = "http://192.168.179.234:8080/sign-up"
+            val url = "ここにローカルネットワークIP"
             val header = mapOf("token" to "")
 
             // POSTリクエストを実行

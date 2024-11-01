@@ -90,7 +90,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     private val waypointMarkers: MutableList<Marker> = mutableListOf()
     private val decodedPolylinePoints: MutableList<List<LatLng>> = mutableListOf()
     private val latLngOrigin = LatLng(66.62765819451323, 25.81479157532732) //出発地点
-    private val apiKey = "AIzaSyA29pAsotpRWxWTUjxW1D3QVWD9P-baKlQ"//apiキー
+    private val apiKey = ""//apiキー
     private var movingMarker: Marker? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val imageResources = arrayOf(R.drawable.three, R.drawable.second, R.drawable.first)
@@ -151,7 +151,8 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     private var totalPoint = 0
 
     //通信用
-    private var url = "http://192.168.179.234:8080/score"
+    private var url = "ここにローカルネットワークIP"
+
     private var header = mapOf("Authorization" to "")
 
 
@@ -520,7 +521,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun getPartialRoute(origin: LatLng, destination: LatLng, apiKey: String) {
-        val urlDirections = "https://maps.googleapis.com/maps/api/directions/json" +
+        val urlDirections = "ここにローカルネットワークIP" +
                 "?origin=${origin.latitude},${origin.longitude}" +
                 "&destination=${destination.latitude},${destination.longitude}" +
                 "&mode=walking" +

@@ -61,8 +61,8 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
 
         readTokenFromFile()
-        val url = "http://192.168.179.234:8080/ranking"
-        val cities = listOf("東京")   //バグ対策いつか解決したい
+        val url = "ここにローカルネットワークIP"
+        val cities = listOf("東京")   //バグ対策いつか解したい
 
         // ランキングデータを取得
         performGetRequest(url, header, "{ \"cities\" : $cities }") { data ->
