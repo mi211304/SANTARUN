@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
 
         readTokenFromFile()
-        val url = "url"
+        val url = "http://192.168.179.234:8080/ranking"
         val cities = listOf("東京")   //バグ対策いつか解決したい
 
         // ランキングデータを取得
@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     fun pickRankingData(data: JSONObject) {
-        val array = data.getJSONArray("ranking")
+        val array = data.getJSONArray("Ranking")
 
         // RankingItemクラスを使ったリストを初期化
         val rankingList = mutableListOf<RankingItem>()
@@ -112,8 +112,8 @@ class MainActivity : AppCompatActivity() {
         // 配列内の各オブジェクトにアクセスする例
         for (i in 0 until array.length()) {
             val ranObject = array.getJSONObject(i)
-            val name = ranObject.getString("user_name")
-            val score = ranObject.getInt("score")
+            val name = ranObject.getString("UserName")
+            val score = ranObject.getInt("Score")
 
             // RankingItemにデータを格納してリストに追加
             val rankingItem = RankingItem(name, score)

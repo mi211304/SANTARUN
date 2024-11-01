@@ -1,5 +1,6 @@
 package com.livinideas.testmap
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -18,9 +19,10 @@ import java.io.FileOutputStream
 
 class LogInActivity : AppCompatActivity() {
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_signup)
+        setContentView(R.layout.activity_login)
 
 
         supportActionBar?.hide()
@@ -37,7 +39,7 @@ class LogInActivity : AppCompatActivity() {
         // ボタンが押された時の処理
         signUpButton.setOnClickListener {
             //バックエンドとのやりとり
-            val url = "url"
+            val url = "http://192.168.179.234:8080/login"
             val header = hashMapOf("token" to "")
             val username = usernameEditText.text.toString()
             val password = passwordEditText.text.toString()
@@ -92,7 +94,6 @@ class LogInActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
             Log.e("Tokenstringpower", "Error writing token to file: $e")
-
         }
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)

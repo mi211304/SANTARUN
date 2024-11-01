@@ -7,15 +7,18 @@
         tools:ignore="CoarseFineLocation" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
 
     <application
-            android:allowBackup="true"
-            android:icon="@drawable/title"
-            android:label="さんたらん"
-            android:roundIcon="@mipmap/ic_launcher_round"
-            android:supportsRtl="true"
-            android:theme="@style/AppTheme"
-            android:usesCleartextTraffic="true">
+        android:allowBackup="true"
+        android:icon="@drawable/title"
+        android:label="さんたらん"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
+
         <activity android:name=".StartActivity"
             android:exported="true">
             <intent-filter>
@@ -23,20 +26,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
+
         <activity android:name=".MainActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
+
+
+
         <activity android:name=".LogInActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
+
+
         <activity android:name=".SignUpActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
+
+        <!-- SantaGameActivity を宣言 -->
+        <activity android:name=".SantaGameActivity"
+            android:exported="true" />
+
+
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="API_KEY"
-            />
+            android:value="AIzaSyA29pAsotpRWxWTUjxW1D3QVWD9P-baKlQ" />
     </application>
-
 </manifest>

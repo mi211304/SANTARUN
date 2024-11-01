@@ -1,5 +1,6 @@
 package com.livinideas.testmap
 
+
 import kotlinx.serialization.json.Json
 import android.Manifest
 import android.animation.Animator
@@ -89,7 +90,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     private val waypointMarkers: MutableList<Marker> = mutableListOf()
     private val decodedPolylinePoints: MutableList<List<LatLng>> = mutableListOf()
     private val latLngOrigin = LatLng(66.62765819451323, 25.81479157532732) //出発地点
-    private val apiKey = ""//apiキー
+    private val apiKey = "AIzaSyA29pAsotpRWxWTUjxW1D3QVWD9P-baKlQ"//apiキー
     private var movingMarker: Marker? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val imageResources = arrayOf(R.drawable.three, R.drawable.second, R.drawable.first)
@@ -101,7 +102,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     private var checkeresult = 0
 
     //アニメーション
-    private val ANIMATION_FRAME_INTERVAL = 500 // フレームのインターバル（ミリ秒）
+    private val ANIMATION_FRAME_INTERVAL = 300 // フレームのインターバル（ミリ秒）
     private val ANIMATION_DISTANCE_INTERVAL = 60// 等間隔の距離（メートル）
     private var movingMarkerCircle: Circle? = null
 
@@ -150,7 +151,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     private var totalPoint = 0
 
     //通信用
-    private var url = "URL"
+    private var url = "http://192.168.179.234:8080/score"
     private var header = mapOf("Authorization" to "")
 
 
@@ -158,6 +159,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(gMap: GoogleMap) {
         googleMap = gMap
         isMapReady = true
+        Log.d("SantaGameActivity", "Map is ready")
 
         // マーカーがタップされたときのリスナーを設定
         googleMap?.setOnMarkerClickListener { marker ->
@@ -174,23 +176,40 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_santa_game)
+
+        makeSantaResources()
+        readAndAddPinsFromTxtFile()
+        readTokenFromFile()
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.fragment_map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+        } else {
+            // パーミッションが許可されている場合はダイアログを表示
+            showLocationDialog()
+        }
+
         // マップが完全に準備されるまで待つ
         mapFragment.view?.viewTreeObserver?.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
+                    /*
                     // マップが完全に準備された後の処理をここに移動
                     readAndAddPinsFromTxtFile()
                     makeSantaResources()
                     readTokenFromFile()
+
+                     */
 
                     // リスナーの削除（1回だけ実行するため）
                     mapFragment.view?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
@@ -199,6 +218,20 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
         )
         supportActionBar?.hide()
     }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d("SantaGameActivity", "Location permission granted")
+                showLocationDialog()  // パーミッション許可後に位置情報ダイアログを表示
+            } else {
+                Log.d("SantaGameActivity", "Location permission denied")
+                Toast.makeText(this, "位置情報の許可が必要です", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
 
     @Suppress("UNREACHABLE_CODE")
     private fun readTokenFromFile(): Map<String, String> {
@@ -247,9 +280,9 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
 
             // リーダーを閉じる
             reader.close()
-            showLocationDialog()
+            Log.d("SantaActivity3", "Finished reading pins. Total pins: ${pinsList.size}")
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("SantaActivity3", "Error reading pins file: ${e.message}")
         }
     }
 
@@ -268,24 +301,18 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun requestLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
             return
         }
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
-                // 現在の位置をゴール地点に設定
                 destinationLatLng = LatLng(location.latitude, location.longitude)
-
+                Log.d("SantaGameActivity", "Current location: $destinationLatLng")
                 updateMapWithDirections()
-
                 showLocationDecisionButton()
+            } else {
+                Log.d("SantaGameActivity", "Location is null")
             }
         }
     }
@@ -295,6 +322,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
 
         // クリックリスナーを設定
         decisionButton.setOnClickListener {
+            Log.d("SantaGameActivity", "Decision button clicked")
             showWaypointSelectionDialog()
             decisionButton.visibility = View.GONE
         }
@@ -455,6 +483,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
     private fun updateMapWithDirections() {
+        Log.d("SantaGameActivity", "Updating map with directions")
         //mapの初期化
         googleMap?.clear()
         // 保存された座標情報をリセット
@@ -496,6 +525,8 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
                 "&destination=${destination.latitude},${destination.longitude}" +
                 "&mode=walking" +
                 "&key=$apiKey"
+
+        Log.d("DirectionsAPI", "Request URL: $urlDirections")
 
         coroutineScope.launch {
             var loadingText = findViewById<ImageView>(R.id.loading_text)
@@ -560,6 +591,11 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
         // レスポンスを処理してマップを更新
         val jsonResponse = JSONObject(response)
         val routes = jsonResponse.getJSONArray("routes")
+
+        if (routes == null || routes.length() == 0) {
+            Log.e("DirectionsAPI", "経路が見つかりません")
+            return
+        }
 
 
         // 出発地点とのマーカーを追加
@@ -749,59 +785,75 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // アニメーションの開始
     private fun animateMarker() {
-        // 各経路を等間隔で分割したポイントを取得
         smoothedPoints = getSmoothedPoints()
 
-        // ValueAnimator によるアニメーションの作成
-        val valueAnimator = ValueAnimator.ofInt(0, smoothedPoints!!.size - 1)
         ANIMATION_DURATION_MS = (totalDistance / desiredSpeed).toLong()
+        val frameInterval = 10L // フレームの更新頻度を30msに調整
+
+        // ValueAnimatorで定義しつつ、実際の描画をHandlerで行う
+        val valueAnimator = ValueAnimator.ofInt(0, smoothedPoints!!.size - 1)
         valueAnimator.duration = ANIMATION_DURATION_MS
-        Log.d("ANIMATION_DURATION_MS", ANIMATION_DURATION_MS.toString())
+        valueAnimator.interpolator = LinearInterpolator()
 
+        // フレーム更新用のHandlerとRunnableを設定
+        val handler = Handler(Looper.getMainLooper())
+        var previousIndex = -1
 
-        // アニメーションの更新時のリスナーを設定
-        valueAnimator.addUpdateListener { animation ->
-            val index = animation.animatedValue as Int
-            // インデックスに基づいて、座標を計算してピンを移動
-            moveMarkerToSmoothedPoint(smoothedPoints!![index])
+        // Runnableでアニメーションを段階的に進行させる
+        val animationRunnable = object : Runnable {
+            override fun run() {
+                val currentIndex = valueAnimator.animatedValue as Int
+                if (currentIndex != previousIndex) { // 前回と同じ位置であればスキップ
+                    moveMarkerToSmoothedPoint(smoothedPoints!![currentIndex])
+                    previousIndex = currentIndex
+                }
 
-            // ピンの位置にカメラを追従させる
-            movingMarker?.position?.let { position ->
-                val cameraUpdate = CameraUpdateFactory.newLatLng(position)
-                googleMap?.moveCamera(cameraUpdate)
-            }
+                // カメラの追従
+                movingMarker?.position?.let { position ->
+                    val cameraUpdate = CameraUpdateFactory.newLatLng(position)
+                    googleMap?.moveCamera(cameraUpdate)
+                }
 
-            // アニメーション中に描画される円を更新
-            updateMovingMarkerCircle(smoothedPoints!![index])
-            //中間地点と目的地が円の中に入ったか確認
-            checkWaypointsAndDestinationInsideCircle()
-        }
+                updateMovingMarkerCircle(smoothedPoints!![currentIndex])
+                checkWaypointsAndDestinationInsideCircle()
 
-        // アニメーションの終了時のリスナーを設定
-        valueAnimator.addListener(object : Animator.AnimatorListener {
-            override fun onAnimationStart(animator: Animator) {
-                // アニメーションが開始した時の処理
-            }
-
-            override fun onAnimationEnd(animator: Animator) {
-                // アニメーションが終了した時の処理
-                if (checkeresult == 0) {
-                    resultTrue()
-                    countdownTimer?.cancel()
+                // 次のフレームに進むか終了するかを確認
+                if (currentIndex < smoothedPoints!!.size - 1) {
+                    handler.postDelayed(this, frameInterval)
+                } else {
+                    onAnimationEnd() // アニメーションが終わった時の処理
                 }
             }
+        }
 
-            override fun onAnimationCancel(animator: Animator) {
-                // アニメーションがキャンセルされた時の処理
+        valueAnimator.addUpdateListener { animation ->
+            val index = animation.animatedValue as Int
+            handler.post(animationRunnable)
+        }
+
+        valueAnimator.addListener(object : Animator.AnimatorListener {
+            override fun onAnimationStart(animator: Animator) {}
+
+            override fun onAnimationEnd(animator: Animator) {
+                onAnimationEnd()
             }
 
-            override fun onAnimationRepeat(animator: Animator) {
-                // アニメーションが繰り返された時の処理
-            }
+            override fun onAnimationCancel(animator: Animator) {}
+
+            override fun onAnimationRepeat(animator: Animator) {}
         })
 
-        // アニメーションの開始
+        // アニメーション開始
         valueAnimator.start()
+    }
+
+    private fun onAnimationEnd() {
+        if (checkeresult == 0) {
+            Log.d("SantaActivity4", "ゴール地点に到達しました")
+            resultTrue()
+
+            countdownTimer?.cancel()
+        }
     }
 
     private fun getSmoothedPoints(): List<LatLng> {
@@ -825,6 +877,10 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
                     smoothedPoints.add(intermediatePoint)
                 }
             }
+        }
+
+        if (smoothedPoints.isEmpty()) {
+            Log.e("SantaGameActivity", "smoothedPointsが空です")
         }
 
         return smoothedPoints
@@ -967,18 +1023,29 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // 円の中に座標が入っているかを判定する関数
     private fun isLatLngInsideCircle(point: LatLng, circleCenter: LatLng?, circleRadius: Double): Boolean {
-        return SphericalUtil.computeDistanceBetween(circleCenter, point) <= circleRadius
+        val isInside = SphericalUtil.computeDistanceBetween(circleCenter, point) <= circleRadius
+        Log.d("SantaActivity", "isLatLngInsideCircle: Point $point is inside circle: $isInside")
+
+        return isInside
+
     }
+
 
     // 円の中に入ったピンを表示する関数
     private fun showPinsInsideCircle(centerLatLng: LatLng) {
+        Log.d("SantaActivity2", "Current state of pins: ${pinsList.map { "${it.title}: isVisible=${it.isVisible}" }}")
+        Log.d("SantaActivity", "Displaying pins within circle at: $centerLatLng")
+
         for (pin in pinsList) {
-            // pinsList に含まれるピンの座標が円の中に入っている場合
+            // 円の中にピンが入っているかチェック
             if (isLatLngInsideCircle(pin.position, centerLatLng, MOVING_MARKER_CIRCLE_RADIUS)) {
-                // まだ表示されていない場合に表示する
+                Log.d("SantaActivity", "Checking pin visibility for ${pin.title}: ${pin.isVisible}")
+
+                // まだ表示されていない場合に追加
                 if (!pin.isVisible) {
-                    pin.isVisible = true
+                    pin.isVisible = true // 表示中のフラグを立てる
                     addCityPinToMap(pin)
+                    Log.d("SantaActivity", "Adding pin ${pin.title} to the map.")
                 }
             } else {
                 // 円の外に出たピンは非表示にする
@@ -990,54 +1057,90 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
 
-    //円の中に入った都市を表示する
-    private fun addCityPinToMap(pin: PinData) {
-        if (googleMap == null) {
-            Log.e("MyApp", "GoogleMap が null です")
-            return
-        }
+
+    /*
+        //円の中に入った都市を表示する
+        private fun addCityPinToMap(pin: PinData) {
+            if (googleMap == null) {
+                Log.e("MyApp", "GoogleMap が null です")
+                return
+            }
 
 
-        // ランダムに画像を選択
-        val random = Random()
-        val randomPinImage = pinImages[random.nextInt(pinImages.size)]
+            // ランダムに画像を選択
+            val random = Random()
+            val randomPinImage = pinImages[random.nextInt(pinImages.size)]
 
-        val bitmap = BitmapFactory.decodeResource(resources, randomPinImage)
+            val bitmap = BitmapFactory.decodeResource(resources, randomPinImage)
 
-        // 新しいサイズを計算
-        val scaleFactor = 0.05f
-        val newWidth = (bitmap.width * scaleFactor).toInt()
-        val newHeight = (bitmap.height * scaleFactor).toInt()
+            // 新しいサイズを計算
+            val scaleFactor = 0.05f
+            val newWidth = (bitmap.width * scaleFactor).toInt()
+            val newHeight = (bitmap.height * scaleFactor).toInt()
 
-        // ピンのサイズを変更
-        val scaledBitmapDescriptor =
-            BitmapDescriptorFactory.fromBitmap(scaleBitmap(bitmap, newWidth, newHeight))
+            // ピンのサイズを変更
+            val scaledBitmapDescriptor =
+                BitmapDescriptorFactory.fromBitmap(scaleBitmap(bitmap, newWidth, newHeight))
 
-        val pinTitle = pin.title
+            val pinTitle = pin.title
 
-        // ピンの名前がすでにリストに存在するか確認
-        if (!isPinNameAlreadyExists(pinTitle)) {
-            // ピンの名前が存在しない場合にのみピンを立て、リストに追加
-            googleMap?.addMarker(
-                MarkerOptions()
-                    .position(pin.position)
-                    .title(pinTitle)
-                    .icon(scaledBitmapDescriptor)
-            )
+            // ピンの名前がすでにリストに存在するか確認
+            if (!isPinNameAlreadyExists(pinTitle)) {
+                // ピンの名前が存在しない場合にのみピンを立て、リストに追加
+                googleMap?.addMarker(
+                    MarkerOptions()
+                        .position(pin.position)
+                        .title(pinTitle)
+                        .icon(scaledBitmapDescriptor)
+                )
 
-            Log.d("MyApp", "$pinTitle のマーカーを ${pin.position} に追加しました")
+                Log.d("MyApp", "$pinTitle のマーカーを ${pin.position} に追加しました")
 
-            //タイマーが0ではない間だけ追加する
-            if (secondsRemaining != 0) {
-                when (checkWayPoints) {
-                    0 -> pinListsName[0].add(pinTitle)
-                    1 -> pinListsName[1].add(pinTitle)
-                    2 -> pinListsName[2].add(pinTitle)
-                    3 -> pinListsName[3].add(pinTitle)
+                //タイマーが0ではない間だけ追加する
+                if (secondsRemaining != 0) {
+                    when (checkWayPoints) {
+                        0 -> pinListsName[0].add(pinTitle)
+                        1 -> pinListsName[1].add(pinTitle)
+                        2 -> pinListsName[2].add(pinTitle)
+                        3 -> pinListsName[3].add(pinTitle)
+                    }
                 }
             }
         }
+
+     */
+
+    private fun addCityPinToMap(pin: PinData) {
+        Log.d("SantaActivity", "Attempting to add marker for ${pin.title} at ${pin.position}")
+        if (googleMap == null) {
+            Log.e("SantaActivity", "GoogleMap is null.")
+            return
+        }
+        // ピンが既に存在するか確認
+        if (isPinNameAlreadyExists(pin.title)) {
+            Log.d("SantaActivity", "Pin ${pin.title} is already displayed.")
+            return
+        }
+
+        // ランダムな画像を取得
+        val randomPinImage = pinImages.random()
+        val bitmap = BitmapFactory.decodeResource(resources, randomPinImage)
+
+        val scaleFactor = 0.05f
+        val newWidth = (bitmap.width * scaleFactor).toInt()
+        val newHeight = (bitmap.height * scaleFactor).toInt()
+        val scaledBitmapDescriptor = BitmapDescriptorFactory.fromBitmap(scaleBitmap(bitmap, newWidth, newHeight))
+
+        googleMap?.addMarker(
+            MarkerOptions()
+                .position(pin.position)
+                .title(pin.title)
+                .icon(scaledBitmapDescriptor)
+        )
+
+        Log.d("SantaActivity", "Pin ${pin.title} added to map at ${pin.position}")
     }
+
 
     // ピンの名前がすでにリストに存在するか確認する関数
     private fun isPinNameAlreadyExists(pinName: String): Boolean {
@@ -1081,6 +1184,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
         handler.post(runnable)
     }
 
+    /*
     private fun updateMovingMarkerCircle(centerLatLng: LatLng) {
         // 円が既に描画されている場合は削除
         movingMarkerCircle?.remove()
@@ -1091,20 +1195,50 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
             movingMarkerCircleOptions = CircleOptions()
                 .center(centerLatLng)
                 .radius(MOVING_MARKER_CIRCLE_RADIUS)
-                .strokeWidth(0f) // ふちの幅を 0 に設定（透明にする）
-                .fillColor(Color.argb(0, 0, 0, 0)) // 円の中の色と透明度
+                .strokeWidth(5f) // ふちの幅を 0 に設定（透明にする）
+                .fillColor(Color.argb(50, 0, 0, 255))// 円の中の色と透明度
         } else {
             // アニメーション中に変更がある場合は中心座標を更新
             movingMarkerCircleOptions?.center(centerLatLng)
-            movingMarkerCircleOptions?.strokeWidth(0f) // ふちの幅を 0 に設定（透明にする）
-            movingMarkerCircleOptions?.fillColor(Color.argb(0, 0, 0, 0)) // 透明にする
+            movingMarkerCircleOptions?.strokeWidth(5f) // ふちの幅を 0 に設定（透明にする）
+            movingMarkerCircleOptions?.fillColor(Color.argb(50, 0, 0, 255)) // 透明にする
         }
 
         // 円を描画
         movingMarkerCircle = googleMap?.addCircle(movingMarkerCircleOptions!!)
     }
 
+     */
+
+    private fun updateMovingMarkerCircle(centerLatLng: LatLng) {
+        // 新しい中心が既存の中心と異なる場合のみ更新
+        if (movingMarkerCircle?.center != centerLatLng) {
+            Log.d("SantaGameActivity", "Updating circle center to: $centerLatLng")
+            movingMarkerCircle?.remove()
+
+            // CircleOptions の初期化または更新
+            if (movingMarkerCircleOptions == null) {
+                movingMarkerCircleOptions = CircleOptions()
+                    .center(centerLatLng)
+                    .radius(MOVING_MARKER_CIRCLE_RADIUS)
+                    .strokeWidth(0f)
+                    .fillColor(Color.argb(0, 0, 0, 0))
+            } else {
+                movingMarkerCircleOptions?.center(centerLatLng)
+            }
+            // 円を描画
+
+            movingMarkerCircle = googleMap?.addCircle(movingMarkerCircleOptions!!)
+            Log.d("SantaActivity", "Calling showPinsInsideCircle with center: $centerLatLng")
+            showPinsInsideCircle(centerLatLng)
+        }
+
+    }
+
+
+
     private fun makeSantaResources(){
+        Log.d("SantaGameActivity", "サンタのピン画像準備")
         val pinDrawable = R.drawable.santa
 
         val bitmap = BitmapFactory.decodeResource(resources, pinDrawable)
@@ -1117,6 +1251,11 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
         // ピンのサイズを変更
         santaResources = BitmapDescriptorFactory.fromBitmap(scaleBitmap(bitmap, newWidth, newHeight))
 
+        if (santaResources == null) {
+            Log.d("SantaGameActivity", "サンタのピン画像が読み込めません")
+        } else {
+            Log.d("SantaGameActivity", "サンタのピン画像が正常に読み込まれました")
+        }
     }
 
     // ピンのアニメーションを停止する関数
@@ -1151,7 +1290,8 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
         Log.d("MyApp", "APIレスポンス開始")
         Log.d("MyApp", "トータルポイントは $totalPoint")
 
-        url = "url"
+        url = "http://192.168.179.234:8080/result"
+        Log.d("SantaGameActivity", header.toString())
 
         performGetRequest(url, header, "{\"score\" : $totalPoint}") { data ->
             pickResultData(data)
@@ -1202,7 +1342,7 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
         Log.d("MyApp", "APIレスポンス開始")
         Log.d("MyApp", "トータルポイントは $totalPoint")
 
-        url = "url"
+        url = "http://192.168.179.234:8080/result"
 
         performGetRequest(url, header, "{\"score\" : $totalPoint}") { data ->
             pickResultData(data)
@@ -1215,33 +1355,57 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
         Log.d("Result", data.getBoolean("isUpdateHighScore").toString())
     }
 
-    private fun resultfin(){
-        val resultImage = findViewById<ImageView>(R.id.result_image)
+    private fun resultfin() {
+        // 各 TextView を取得
         val resultTimeText = findViewById<TextView>(R.id.result_time_text)
         val resultScoreText = findViewById<TextView>(R.id.result_score_text)
         val resultBonusScoreText = findViewById<TextView>(R.id.result_bonus_score_text)
         val resultTotalScoreText = findViewById<TextView>(R.id.result_total_score_text)
+        val resultImage = findViewById<ImageView>(R.id.result_image)
         val decisionButton = findViewById<Button>(R.id.result_button)
 
-        //画面の更新
-        result_time_text.text = timePointText
-        result_score_text.text = basePoint.toString()
-        result_bonus_score_text.text = bonusPoint.toString()
-        result_total_score_text.text = totalPoint.toString()
+        // TextView が null でないか確認
+        if (resultTimeText == null || resultScoreText == null || resultBonusScoreText == null || resultTotalScoreText == null) {
+            Log.e("SantaGameActivity", "TextView が見つかりません。レイアウトを確認してください。")
+            return
+        }
+
+        // timePointText の末尾4文字を削除して表示用に整形
+        val formattedTimePointText = if (timePointText.length > 5) {
+            timePointText.dropLast(5)
+        } else {
+            timePointText
+        }
+
+        // 削除された末尾4文字のうち最後の3文字を取得
+        val basePointFromTimeText = if (timePointText.length >= 4) {
+            timePointText.takeLast(4).dropLast(0)
+        } else {
+            "000" // デフォルトの表示
+        }
+
+        // TextView に結果を設定
+        resultTimeText.text = formattedTimePointText+"秒" // timePointText の整形後の表示
+        resultScoreText.text = basePointFromTimeText // 削除した4文字のうち3文字を basePoint として表示
+        resultBonusScoreText.text = bonusPoint.toString()
+        resultTotalScoreText.text = totalPoint.toString()
 
         // クリックリスナーを設定
-        decisionButton.setOnClickListener {
+        decisionButton?.setOnClickListener {
+
             decisionButton.visibility = View.GONE
             gamefin()
         }
-        // リザルト画面を表示
-        resultImage.visibility = View.VISIBLE
+
+        // 結果画面の要素を表示
+        resultImage?.visibility = View.VISIBLE
         resultTimeText.visibility = View.VISIBLE
         resultScoreText.visibility = View.VISIBLE
         resultBonusScoreText.visibility = View.VISIBLE
         resultTotalScoreText.visibility = View.VISIBLE
-        decisionButton.visibility = View.VISIBLE
+        decisionButton?.visibility = View.VISIBLE
     }
+
 
     private fun gamefin(){
         val intent = Intent(this, MainActivity::class.java)
@@ -1265,14 +1429,19 @@ class SantaGameActivity : AppCompatActivity(), OnMapReadyCallback {
                 val scaleFactor = 0.1f
                 val newWidth = (newBitmap.width * scaleFactor).toInt()
                 val newHeight = (newBitmap.height * scaleFactor).toInt()
+                val newScaledBitmapDescriptor = BitmapDescriptorFactory.fromBitmap(scaleBitmap(newBitmap, newWidth, newHeight))
 
-                // ピンのサイズを変更
-                val newScaledBitmapDescriptor =
-                    BitmapDescriptorFactory.fromBitmap(scaleBitmap(newBitmap, newWidth, newHeight))
+                // マーカーを削除して再作成
+                val position = marker.position
+                marker.remove()  // 元のマーカーを削除
+                googleMap?.addMarker(
+                    MarkerOptions()
+                        .position(position)
+                        .icon(newScaledBitmapDescriptor)
+                        .title(pinTitle)
+                )
 
-                // ピンのアイコンを変更
-                marker.setIcon(newScaledBitmapDescriptor)
-
+                Log.d("SantaGameActivity", "ピン画像をchengpinに変更しました: $pinTitle")
                 vibrateForHalfSecond()
             }
         }
